@@ -1,0 +1,140 @@
+CREATE (p:Movie {
+    title: 'Pulp Fiction',
+    actors: ['John Travolta', 'Samuel Jackson', 'Bruce Willis', 'Uma Thurman'],
+    director: 'Quentin Tarantino',
+    genres: ['Action', 'Crime', 'Thriller'],
+    writers: ['Quentin Tarantino', 'Roger Avary'],
+    year: 1994
+})
+ 
+CREATE (t:Movie {
+    title: 'The Punisher',
+    actors: ['Thomas Jane', 'John Travolta', 'Samantha Mathis'],
+    director: 'Jonathan Hensleigh',
+    genres: ['Action', 'Adventure', 'Crime, Drama', 'Thriller'],
+    writers: ['Jonathan Hensleigh', 'Michael France'],
+    year: 2004
+})
+ 
+CREATE (k:Movie {
+    title: 'Kill Bill: Volume 1',
+    actors: ['Uma Thurman', 'Lucy Liu', 'Vivica A. Fox'],
+    director: 'Quentin Tarantino',
+    genres: ['Action', 'Crime', 'Thriller'],
+    writers: ['Quentin Tarantino', 'Uma Thurman'],
+    year: 2003
+})
+
+
+
+
+
+
+MATCH (m:Movie)
+WHERE m.director = 'Quentin Tarantino'
+RETURN m
+
+
+
+
+
+
+MATCH (m:Movie)
+WITH m.actors as actors
+UNWIND actors as actor
+MATCH (n:Movie)
+WHERE actor IN n.actors
+WITH actor, n.actors as otherActors, n.title as title
+UNWIND otherActors as otherActor
+WITH actor, otherActor, title
+WHERE actor <> otherActor
+RETURN actor, otherActor, title
+ORDER BY actor
+
+
+
+
+CREATE CONSTRAINT ON (a:Movie) ASSERT a.title IS UNIQUE;
+CREATE CONSTRAINT ON (a:Genre) ASSERT a.genre IS UNIQUE;
+CREATE CONSTRAINT ON (a:Person) ASSERT a.name IS UNIQUE;
+ 
+CREATE (pulp:Movie {title: 'Pulp Fiction'})
+FOREACH (director IN ['Quentin Tarantino']
+| MERGE (p:Person {name: director}) SET p:Director MERGE (p)-[:DIRECTED]->(pulp))
+FOREACH (actor IN ['John Travolta', 'Samuel L. Jackson', 'Bruce Willis', 'Uma Thurman']
+| MERGE (p:Person {name: actor}) SET p:Actor MERGE (p)-[:ACTS_IN]->(pulp))
+FOREACH (writer IN ['Quentin Tarantino', 'Roger Avary']
+| MERGE (p:Person {name: writer}) SET p:Writer MERGE (p)-[:WRITES]->(pulp))
+FOREACH (genre IN ['Action', 'Crime', 'Thriller']
+| MERGE (g:Genre {genre: genre}) MERGE (pulp)-[:HAS_GENRE]->(g))
+ 
+CREATE (punisher:Movie {title: 'The Punisher'})
+FOREACH (director IN ['Jonathan Hensleigh']
+| MERGE (p:Person {name: director}) SET p:Director MERGE (p)-[:DIRECTED]->(punisher))
+FOREACH (actor IN ['Thomas Jane', 'John Travolta', 'Samantha Mathis']
+| MERGE (p:Person {name: actor}) SET p:Actor MERGE (p)-[:ACTS_IN]->(punisher))
+FOREACH (writer IN ['Jonathan Hensleigh', 'Michael France']
+| MERGE (p:Person {name: writer}) SET p:Writer MERGE (p)-[:WRITES]->(punisher))
+FOREACH (genre IN ['Action', 'Adventure', 'Crime', 'Drama', 'Thriller']
+| MERGE (g:Genre {genre: genre}) MERGE (punisher)-[:HAS_GENRE]->(g))
+ 
+CREATE (bill:Movie {title: 'Kill Bill: Volume 1'})
+FOREACH (director IN ['Quentin Tarantino']
+| MERGE (p:Person {name: director}) SET p:Director MERGE (p)-[:DIRECTED]->(bill))
+FOREACH (actor IN ['Uma Thurman', 'Lucy Liu', 'Vivica A. Fox']
+| MERGE (p:Person {name: actor}) SET p:Actor MERGE (p)-[:ACTS_IN]->(bill))
+FOREACH (writer IN ['Quentin Tarantino', 'Uma Thurman']
+| MERGE (p:Person {name: writer}) SET p:Writer MERGE (p)-[:WRITES]->(bill))
+FOREACH (genre IN ['Action', 'Crime', 'Thriller']
+| MERGE (g:Genre {genre: genre}) MERGE (bill)-[:HAS_GENRE]->(g))
+
+
+
+
+
+MATCH (actor:Actor)-[:ACTS_IN]->(movie:Movie)<-[:ACTS_IN]-(otherActor:Actor)
+WHERE actor <> otherActor
+RETURN actor.name as actor, otherActor.name as otherActor,
+movie.title as title
+ORDER BY actor
+
+
+
+
+
+MATCH (user:User)-[:WATCHED|RATES]->(movie:Movie)-[:ACTS_IN|WRITES|DIRECTED|PRODUCES|HAS_GENRE]-(feature)
+WITH user, feature, count(feature) as occurrences
+WHERE occurrences > 2
+MERGE (user)-[:INTERESTED_IN]->(feature)
+
+
+
+
+MATCH (user:User)-[i:INTERESTED_IN]->(feature)-[]-(movie:Movie)
+WHERE user.userId = <user Id> AND NOT exists((user)-[]->(movie))
+RETURN movie.title, count(i) as occurrences
+ORDER BY occurrences desc
+
+
+
+
+MATCH (feature)
+WHERE "Genre" in labels(feature) OR "Director" in labels(feature)
+WITH feature
+ORDER BY id(feature)
+MATCH (movie:Movie)
+WHERE movie.title STARTS WITH "Pulp Fiction"
+OPTIONAL MATCH (movie)-[r:DIRECTED|:HAS_GENRE]-(feature)
+RETURN CASE WHEN r IS null THEN 0 ELSE 1 END as Value,
+CASE WHEN n.genre IS null THEN n.name ELSE n.genre END as Feature
+
+
+
+
+
+
+MATCH (user:User)-[:WATCHED|RATES]->(m:Movie)-[:ACTS_IN|WRITES|DIRECTED|PRODUCES|HAS_GENRE]-(feature)
+WITH user, feature, count(feature) as occurrence
+WHERE occurrence > 2
+MERGE (user)-[r:INTERESTED_IN]->(feature)
+SET r.weight = occurrence
