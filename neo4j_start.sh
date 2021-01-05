@@ -6,6 +6,4 @@ docker run \
 -v $PWD/neo4j/logs:/logs \
 -v $PWD/neo4j/import:/var/lib/neo4j/import \
 -v $PWD/neo4j/plugins:/plugins \
---env NEO4JLABS_PLUGINS='["apoc", "n10s"]' \
---env NEO4J_AUTH=neo4j/test \
-neo4j:latest%                                                                                                                                                                                           
+neo4j:latest
