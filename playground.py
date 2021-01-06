@@ -1,10 +1,15 @@
 from neo4j import GraphDatabase
 import csv
+from imdb import IMDb
+
+
 
 class MovieExample:
 
     def __init__(self, uri, user, password):
         self._driver = GraphDatabase.driver(uri, auth=(user, password))
+        # create an instance of the IMDb class
+        self._ia = IMDb()
             
     def import_movies(self, file):
         with open(file, 'r+') as in_file:
