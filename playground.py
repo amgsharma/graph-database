@@ -58,7 +58,7 @@ class MovieExample:
             reader = csv.reader(in_file, delimiter=',')
             next(reader, None)
             with self._driver.session() as session:
-                session.run("CREATE CONSTRAINT ON (a:Person) ASSERT a.name IS UNIQUE;")
+                #session.run("CREATE CONSTRAINT ON (a:Person) ASSERT a.name IS UNIQUE;")
                 tx = session.begin_transaction()
                 i = 0;
                 j = 0;
@@ -84,13 +84,13 @@ class MovieExample:
     
     def process_movie_info(self, tx, movie_info, movie_id):
         query = """
-            MATCH (movie:Movie {movieId: {movieId}})
-            SET movie.plot = {plot}
-            FOREACH (director IN {directors} | MERGE (d:Person {name: director}) SET d:Director MERGE (d)-[:DIRECTED]->(movie))
-            FOREACH (actor IN {actors} | MERGE (d:Person {name: actor}) SET d:Actor MERGE (d)-[:ACTS_IN]->(movie))
-            FOREACH (producer IN {producers} | MERGE (d:Person {name: producer}) SET d:Producer MERGE (d)-[:PRODUCES]->(movie))
-            FOREACH (writer IN {writers} | MERGE (d:Person {name: writer}) SET d:Writer MERGE (d)-[:WRITES]->(movie))
-            FOREACH (genre IN {genres} | MERGE (g:Genre {genre: genre}) MERGE (movie)-[:HAS_GENRE]->(g))
+            MATCH (movie:Movie {movieId: $movieId})
+            SET movie.plot = $plot
+            FOREACH (director IN $directors | MERGE (d:Person {name: director}) SET d:Director MERGE (d)-[:DIRECTED]->(movie))
+            FOREACH (actor IN $actors | MERGE (d:Person {name: actor}) SET d:Actor MERGE (d)-[:ACTS_IN]->(movie))
+            FOREACH (producer IN $producers | MERGE (d:Person {name: producer}) SET d:Producer MERGE (d)-[:PRODUCES]->(movie))
+            FOREACH (writer IN $writers | MERGE (d:Person {name: writer}) SET d:Writer MERGE (d)-[:WRITES]->(movie))
+            FOREACH (genre IN $genres | MERGE (g:Genre {genre: genre}) MERGE (movie)-[:HAS_GENRE]->(g))
         """
         directors = []
         for director in movie_info['directors']:
